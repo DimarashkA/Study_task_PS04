@@ -1,94 +1,80 @@
-##Часть первая
-
-#from selenium import webdriver
-#import time
-
-#browser= webdriver.Firefox()
-#browser.get('https://ru.wikipedia.org/wiki/Document_Object_Model')
-#browser.save_screenshot("dom.png") #скриншот страницы
-#time.sleep(3)
-#browser.get('https://ru.wikipedia.org/wiki/Selenium')
-#browser.save_screenshot("selenium.png") #скриншот страницы
-#time.sleep(3)
-#browser.refresh() #перезагрузка страницы
-#browser.quit()
-
-##Часть вторая
-
-#from selenium import webdriver
-#from selenium.webdriver import Keys
-#from selenium.webdriver.common.by import By
-#import time
-
-#browser = webdriver.Firefox()
-#browser.get("https://ru.wikipedia.org/wiki/%D0%97%D0%B0%D0%B3%D0%BB%D0%B0%D0%B2%D0%BD%D0%B0%D1%8F_%D1%81%D1%82%D1%80%D0%B0%D0%BD%D0%B8%D1%86%D0%B0")
-
-#assert "Википедия" in browser.title
-#time.sleep(5)
-#search_box = browser.find_element(By.ID, "searchInput")
-#search_box.send_keys("Солнечная система")
-#search_box.send_keys(Keys.RETURN)
-
-#time.sleep(5)
-#a = browser.find_element(By.LINK_TEXT, "Солнечная система")
-#a.click()
-
-##Часть третья
-
-#from selenium import webdriver
-#from selenium.webdriver import Keys
-#from selenium.webdriver.common.by import By
-#import time
-
-#browser = webdriver.Firefox()
-#browser.get("https://ru.wikipedia.org/wiki/%D0%A1%D0%BE%D0%BB%D0%BD%D0%B5%D1%87%D0%BD%D0%B0%D1%8F_%D1%81%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D0%B0")
-
-#paragraphs = browser.find_elements(By.TAG_NAME, "p")
-#for paragraph in paragraphs:
-#    print(paragraph.text)
-#    time.sleep(2)
-#    input()
-
-#Часть четвертая
-
+import keyboard
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 import random
 import time
 
-# Инициализация веб-драйвера
+def search_wikipedia(query):
+    search_box = browser.find_element(By.NAME, "search")
+    search_box.send_keys(query)
+    search_box.send_keys(Keys.RETURN)
+
+def list_paragraphs():
+    paragraphs = browser.find_elements(By.TAG_NAME, "p")
+    print("Нажмите Enter для листания параграфов и Esc для прерывания.")
+    should_stop = False
+
+    def on_esc(e):
+        nonlocal should_stop
+        should_stop = True
+
+    keyboard.on_press_key("esc", on_esc)
+
+    for p in paragraphs:
+        if should_stop:
+            print("Листание параграфов прервано.")
+            break
+
+        print(p.text)
+        print("\n---\n")
+        while True:
+            if keyboard.is_pressed("enter"):
+                break
+            elif keyboard.is_pressed("esc"):
+                should_stop = True
+                break
+        time.sleep(0.1)  # Небольшая задержка для избежания слишком быстрой проверки клавиш
+    keyboard.unhook_all()  # Убираем все хуки
+    print("Конец статьи или листание прервано. Возвращение к меню.")
+    time.sleep(2)
+
+def navigate_links():
+    links = browser.find_elements(By.XPATH, '//div[@id="mw-content-text"]//a[starts-with(@href, "/wiki/")]')
+    if links:
+        random_link = random.choice(links)
+        link_text = random_link.text
+        link_href = random_link.get_attribute("href")
+        print(f"Переход по случайной ссылке: {link_text}")
+        browser.get(link_href)
+    else:
+        print("Связанные страницы не найдены.")
+
+# Инициализация браузера
 browser = webdriver.Firefox()
 
 try:
-    # Открытие страницы Википедии
-    browser.get("https://ru.wikipedia.org/wiki/%D0%A1%D0%BE%D0%BB%D0%BD%D0%B5%D1%87%D0%BD%D0%B0%D1%8F_%D1%81%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D0%B0")
+    browser.get("https://ru.wikipedia.org/wiki/Заглавная_страница")
 
-    # Поиск элементов с определенным классом
-    hatnotes = []
-    for element in browser.find_elements(By.TAG_NAME, "div"):
-        cl = element.get_attribute("class")
-        if cl == "hatnote navigation-not-searchable":
-            hatnotes.append(element)
+    initial_query = input("Введите начальный запрос: ")
+    search_wikipedia(initial_query)
 
-    if not hatnotes:
-        print("Нет элементов с классом 'hatnote navigation-not-searchable'")
-    else:
-        print(f"Найдено {len(hatnotes)} элементов с классом 'hatnote navigation-not-searchable'")
+    while True:
+        print("\nВыберите действие:")
+        print("1. Листать параграфы текущей статьи")
+        print("2. Перейти на одну из связанных страниц")
+        print("3. Выйти из программы")
 
-        # Выбор случайного элемента
-        hatnote = random.choice(hatnotes)
-        link_element = hatnote.find_element(By.TAG_NAME, "a")
+        choice = input("Введите номер действия: ")
 
-        if link_element:
-            link = link_element.get_attribute("href")
-            print(f"Переход по ссылке: {link}")
-
-            # Переход по найденной ссылке
-            browser.get(link)
+        if choice == "1":
+            list_paragraphs()
+        elif choice == "2":
+            navigate_links()
+        elif choice == "3":
+            print("Выход из программы...")
+            break
         else:
-            print("В выбранном элементе нет ссылок")
+            print("Неверный выбор, попробуйте снова.")
 finally:
-    # Закрытие браузера через некоторое время для возможности увидеть результат
-    time.sleep(5)  # Увеличьте время, если хотите дольше наблюдать результат
     browser.quit()
-
